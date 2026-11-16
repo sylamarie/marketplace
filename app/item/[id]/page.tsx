@@ -8,7 +8,7 @@ export const metadata = { title: "Listing · Marketplace" };
 // Suspense wrapper shows "Loading…" while the page gets ready.
 export default function ItemPage() {
   return (
-    <Suspense fallback={<p className="px-4 py-6 text-sm text-muted-foreground">Loading…</p>}>
+    <Suspense fallback={<p className="page-container py-6 text-sm text-muted-foreground">Loading…</p>}>
       <ListingDetail />
     </Suspense>
   );

@@ -24,7 +24,7 @@ export function Logo({ className }: { className?: string }) {
 export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b bg-card shadow-sm">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+      <div className="page-container flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-ring">
           <Logo />
           <span className="text-xl font-bold tracking-tight">Marketplace</span>

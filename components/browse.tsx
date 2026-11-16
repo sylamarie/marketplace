@@ -64,7 +64,8 @@ export function Browse() {
   const heading = category ? categoryName(category) : "Today's picks";
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl flex-1 content-start gap-6 px-4 py-6 lg:grid-cols-[16rem_1fr]">
+    // The sidebar grows a little with the window (from 15rem up to 19rem).
+    <main className="page-container grid flex-1 content-start gap-6 py-6 lg:grid-cols-[clamp(15rem,16vw,19rem)_1fr]">
       {/* Big screens: categories in a sidebar */}
       <div className="hidden lg:block">
         {/* The list is taller than most screens, so it scrolls on its own and
@@ -114,7 +115,7 @@ export function Browse() {
         )}
         {status === "loading" && (
           <div role="status" aria-label="Loading listings">
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4 2xl:grid-cols-5">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11.5rem,1fr))] sm:gap-4">
               {Array.from({ length: 10 }, (_, i) => (
                 <li key={i}>
                   <ListingCardSkeleton />
@@ -138,7 +139,9 @@ export function Browse() {
           </p>
         )}
 
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4 2xl:grid-cols-5">
+        {/* The number of columns is not fixed: as many cards as fit, each at least
+            11.5rem wide, so the grid fills the width at any window size. */}
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(11.5rem,1fr))] sm:gap-4">
           {visible.map((listing) => (
             <li key={listing.id}>
               <ListingCard listing={listing} />

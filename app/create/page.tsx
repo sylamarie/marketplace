@@ -16,10 +16,11 @@ export const metadata = { title: "Choose listing type · Marketplace" };
 // far, and the others are marked "Coming soon".
 export default function ChooseListingType() {
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+    <main className="page-container flex-1 py-8">
       <h1 className="text-center text-2xl font-bold">Choose listing type</h1>
       <p className="mt-1 mb-6 text-center text-sm text-muted-foreground">What would you like to list today?</p>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* As many cards per row as fit (each 14rem to 18rem wide), centred. */}
+      <ul className="grid justify-center gap-4 sm:grid-cols-[repeat(auto-fit,minmax(14rem,18rem))]">
         {TYPES.map(({ name, text, icon: Icon, href }) => {
           const card = (
             <div

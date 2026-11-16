@@ -168,13 +168,13 @@ export function ListingForm() {
   const invalid = (key: keyof ListingErrors) => (errors[key] ? true : undefined);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+    <main className="page-container flex-1 py-6">
       <Link href="/create" className="mb-4 inline-block text-sm text-primary hover:underline">
         ← Choose listing type
       </Link>
       <h1 className="mb-6 text-2xl font-bold">Item for sale</h1>
 
-      <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[clamp(22rem,28vw,30rem)_1fr]">
         <form onSubmit={onSubmit} noValidate className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
           {/* Photo */}
           <div>

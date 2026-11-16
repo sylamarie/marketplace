@@ -128,10 +128,10 @@ export function ListingDetail() {
 
   if (status !== "ready" || !listing) {
     return (
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <main className="page-container flex-1 py-6">
         {backLink}
         {status === "loading" && (
-          <div role="status" aria-label="Loading listing" className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+          <div role="status" aria-label="Loading listing" className="grid gap-6 lg:grid-cols-[1fr_clamp(22rem,26vw,30rem)]">
             <div className="min-h-[22rem] animate-pulse rounded-xl bg-muted lg:min-h-[32rem]" />
             <div className="space-y-4">
               <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
@@ -164,9 +164,9 @@ export function ListingDetail() {
   const remaining = LIMITS.message - message.length;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+    <main className="page-container flex-1 py-6">
       {backLink}
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_clamp(22rem,26vw,30rem)]">
         {/* The photo sits on a soft, blurred copy of itself (like Facebook), so there
             are no empty white bands above and below it. The blurred copy is only
             decoration, so it has no description for screen readers. */}

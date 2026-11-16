@@ -128,3 +128,16 @@
     @apply font-sans;
   }
 }
+
+/* One shared, fluid page width for every page (header included, so they line up).
+   The side margin is about 2.5% of the window: small on a phone, a bit larger on
+   a big monitor, and never a fixed pile of empty space. On extremely wide screens
+   the page stops growing at 160rem (2560px, a 27-inch 1440p monitor) and centres. */
+@layer components {
+  .page-container {
+    width: 100%;
+    max-width: 160rem;
+    margin-inline: auto;
+    padding-inline: clamp(1rem, 2.5vw + 0.25rem, 3.5rem);
+  }
+}
