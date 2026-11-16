@@ -47,7 +47,8 @@ export function ListingDetail() {
   const [errors, setErrors] = useState<MessageErrors>({});
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
+  // null = nothing sent yet. Otherwise: was the seller also emailed?
+  const [sent, setSent] = useState<{ emailed: boolean } | null>(null);
 
   useEffect(() => {
     if (!supabase || !isUuid(id)) return;
@@ -87,20 +88,35 @@ export function ListingDetail() {
     }
 
     setSending(true);
-    // No ".select()" here on purpose: visitors may add messages but not read them back.
-    const { error } = await supabase.from("messages").insert({
-      listing_id: listing.id,
-      buyer_email: buyerEmail.trim(),
-      message: message.trim(),
-    });
+    // The message goes to our own server route, which saves it in Supabase and then
+    // emails the seller (when an email service is set up). See app/api/messages.
+    let response: Response | null = null;
+    try {
+      response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listing_id: listing.id,
+          buyer_email: buyerEmail.trim(),
+          message: message.trim(),
+        }),
+      });
+    } catch {
+      response = null; // no connection
+    }
     setSending(false);
 
-    if (error) {
-      console.error("Could not send message:", error.message);
+    if (response?.status === 429) {
+      setSendError("That's a lot of messages. Please wait a few minutes and try again.");
+      return;
+    }
+    if (!response || !response.ok) {
+      console.error("Could not send message:", response?.status ?? "no connection");
       setSendError("Sorry, your message could not be sent. Please try again.");
       return;
     }
-    setSent(true);
+    const result = (await response.json().catch(() => ({}))) as { emailed?: boolean };
+    setSent({ emailed: result.emailed === true });
     setMessage("");
   }
 
@@ -184,9 +200,11 @@ export function ListingDetail() {
               <div role="status" className="space-y-3">
                 <p className="flex items-start gap-2 rounded-md bg-green-50 p-3 text-sm text-green-800">
                   <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0" />
-                  Your message was sent and saved for the seller.
+                  {sent.emailed
+                    ? "Your message was sent. The seller has also been notified by email."
+                    : "Your message was sent and saved for the seller."}
                 </p>
-                <Button type="button" variant="outline" onClick={() => setSent(false)} className="w-full">
+                <Button type="button" variant="outline" onClick={() => setSent(null)} className="w-full">
                   Send another message
                 </Button>
               </div>
