@@ -1,10 +1,23 @@
 "use client";
 
-import { Tag } from "lucide-react";
+import { Tag, User, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { CATEGORIES } from "@/lib/categories";
 import { cn } from "@/lib/utils";
+
+// A menu item for something that needs accounts (which this site doesn't have
+// yet), so it is shown but switched off, with a "Coming soon" note. It is not a
+// link, so nobody ends up on a page that doesn't exist.
+function SoonItem({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  return (
+    <div aria-disabled="true" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground">
+      <Icon aria-hidden className="size-4" />
+      {label}
+      <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs">Coming soon</span>
+    </div>
+  );
+}
 
 type Props = {
   selected: string | null; // the category slug, or null for "all"
@@ -22,13 +35,23 @@ export function CategorySidebar({ selected, onSelect }: Props) {
   return (
     <nav aria-label="Categories" className="rounded-xl border bg-card p-3 shadow-sm">
       <h2 className="px-3 pt-1 pb-2 text-lg font-bold">Create new listing</h2>
-      <Link
-        href="/create"
-        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Tag aria-hidden className="size-4 text-muted-foreground" />
-        Choose listing type
-      </Link>
+      <ul>
+        <li>
+          <Link
+            href="/create"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Tag aria-hidden className="size-4 text-muted-foreground" />
+            Choose listing type
+          </Link>
+        </li>
+        <li>
+          <SoonItem icon={Tag} label="Your listings" />
+        </li>
+        <li>
+          <SoonItem icon={User} label="Seller help" />
+        </li>
+      </ul>
 
       <h2 className="px-3 pt-5 pb-1 text-lg font-bold">Categories</h2>
       <ul>
