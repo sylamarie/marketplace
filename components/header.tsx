@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { CreditCard, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -29,10 +29,21 @@ export function Header() {
           <Logo />
           <span className="text-xl font-bold tracking-tight">Marketplace</span>
         </Link>
-        <Link href="/create" className={cn(buttonVariants({ size: "lg" }), "gap-1.5")}>
-          <Plus aria-hidden className="size-4" />
-          Create listing
-        </Link>
+        <nav aria-label="Main" className="flex items-center gap-2">
+          {/* On a phone only the card icon is shown, to keep the bar from getting crowded. */}
+          <Link
+            href="/connect"
+            aria-label="Get paid with Stripe"
+            className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-1.5")}
+          >
+            <CreditCard aria-hidden className="size-4" />
+            <span className="hidden sm:inline">Get paid</span>
+          </Link>
+          <Link href="/create" className={cn(buttonVariants({ size: "lg" }), "gap-1.5")}>
+            <Plus aria-hidden className="size-4" />
+            Create listing
+          </Link>
+        </nav>
       </div>
     </header>
   );

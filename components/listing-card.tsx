@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 // One item in the grid on the home page. Click it to open the listing.
 export function ListingCard({ listing }: { listing: Listing }) {
   const price = Number(listing.price);
+  const sold = listing.sold === true;
   return (
     <Link
       href={`/item/${listing.id}`}
@@ -18,9 +19,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
         <Photo
           path={listing.image_path}
           alt={listing.title}
-          className="size-full object-cover transition duration-300 group-hover:scale-105"
+          className={cn("size-full object-cover transition duration-300 group-hover:scale-105", sold && "opacity-60 grayscale")}
         />
-        {price === 0 && (
+        {sold ? (
+          <span className="absolute top-2 left-2 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+            Sold
+          </span>
+        ) : price === 0 && (
           <span className="absolute top-2 left-2 rounded-full bg-green-600 px-2.5 py-0.5 text-xs font-semibold text-white shadow">
             Free
           </span>

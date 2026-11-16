@@ -1,6 +1,6 @@
 "use client";
 
-import { Tag, User, type LucideIcon } from "lucide-react";
+import { CreditCard, Tag, User, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { CATEGORIES } from "@/lib/categories";
@@ -52,6 +52,15 @@ export function CategorySidebar({ selected, onSelect }: Props) {
           >
             <Tag aria-hidden className="size-4 text-muted-foreground" />
             Choose listing type
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/connect"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <CreditCard aria-hidden className="size-4 text-muted-foreground" />
+            Get paid with Stripe
           </Link>
         </li>
         <li>

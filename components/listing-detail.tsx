@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Clock, MapPin, Tag } from "lucide-react";
+import { CheckCircle2, Clock, MapPin, ShoppingCart, Tag } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { categoryName } from "@/lib/categories";
+import { buyState, normalizeEmail } from "@/lib/payments";
 import {
   LIMITS,
   formatPrice,
@@ -41,6 +42,10 @@ export function ListingDetail() {
   const [status, setStatus] = useState<Status>(
     !supabase ? "unconfigured" : isUuid(id) ? "loading" : "notfound",
   );
+  // Has this listing's seller finished Stripe onboarding? (Decides if "Buy now" shows.)
+  const [sellerReady, setSellerReady] = useState(false);
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState<string | null>(null);
 
   const [buyerEmail, setBuyerEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -64,7 +69,16 @@ export function ListingDetail() {
       } else if (!data) {
         setStatus("notfound");
       } else {
-        setListing(data as Listing);
+        const found = data as Listing;
+        // A small public list of the emails of sellers who can take payments.
+        const { data: ready } = await client
+          .from("onboarded_sellers")
+          .select("email")
+          .eq("email", normalizeEmail(found.seller_email))
+          .maybeSingle();
+        if (cancelled) return;
+        setSellerReady(Boolean(ready));
+        setListing(found);
         setStatus("ready");
       }
     }
@@ -74,6 +88,38 @@ export function ListingDetail() {
       cancelled = true;
     };
   }, [id]);
+
+  // "Buy now": ask our server for a Stripe Checkout page, then go there. The server
+  // decides the price and the seller from the saved listing; we only say which one.
+  async function onBuy() {
+    if (!listing || buying) return;
+    setBuyError(null);
+    setBuying(true);
+    let url: string | null = null;
+    let reason = "";
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listing_id: listing.id }),
+      });
+      const result = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (response.ok && result.url) url = result.url;
+      else reason = result.error ?? "";
+    } catch {
+      reason = "";
+    }
+    if (url) {
+      window.location.assign(url); // off to Stripe's secure checkout page
+      return; // stay "busy" while the browser leaves
+    }
+    setBuying(false);
+    setBuyError(
+      reason === "sold"
+        ? "Sorry, this item has just been sold."
+        : "Sorry, we couldn't start the checkout. Please try again.",
+    );
+  }
 
   async function onSend(event: FormEvent) {
     event.preventDefault();
@@ -162,6 +208,7 @@ export function ListingDetail() {
   }
 
   const remaining = LIMITS.message - message.length;
+  const buy = buyState({ price: Number(listing.price), sold: listing.sold }, sellerReady);
 
   return (
     <main className="page-container flex-1 py-6">
@@ -188,8 +235,11 @@ export function ListingDetail() {
         <div className="min-w-0 space-y-5">
           <div>
             <h1 className="text-2xl leading-tight font-bold break-words">{listing.title}</h1>
-            <p className={`mt-1 text-3xl font-bold ${Number(listing.price) === 0 ? "text-green-700" : ""}`}>
+            <p className={`mt-1 flex items-center gap-3 text-3xl font-bold ${Number(listing.price) === 0 ? "text-green-700" : ""}`}>
               {formatPrice(Number(listing.price))}
+              {buy === "sold" && (
+                <span className="rounded-full bg-destructive px-3 py-0.5 text-sm font-semibold text-white">Sold</span>
+              )}
             </p>
             <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
@@ -208,6 +258,35 @@ export function ListingDetail() {
               </li>
             </ul>
           </div>
+
+          {/* Buying: a Buy now button when the seller can take payments, or an honest note. */}
+          {buy === "buyable" && (
+            <div>
+              <Button type="button" size="lg" onClick={onBuy} disabled={buying} className="h-11 w-full gap-2 text-base">
+                <ShoppingCart aria-hidden className="size-4" />
+                {buying ? "Opening checkout…" : `Buy now · ${formatPrice(Number(listing.price))}`}
+              </Button>
+              <p className="mt-1.5 text-center text-xs text-muted-foreground">Secure payment by Stripe (test mode)</p>
+              {buyError && (
+                <p role="alert" className="mt-2 text-sm text-destructive">
+                  {buyError}
+                </p>
+              )}
+            </div>
+          )}
+          {buy === "sold" && (
+            <p role="status" className="rounded-md bg-muted p-3 text-sm">
+              This item has been sold.
+            </p>
+          )}
+          {buy === "seller-not-ready" && (
+            <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+              Online payment isn&apos;t set up for this seller yet. You can message them below. Are you the seller?{" "}
+              <Link href="/connect" className="font-medium text-primary hover:underline">
+                Connect with Stripe
+              </Link>
+            </p>
+          )}
 
           {listing.description && (
             <div>

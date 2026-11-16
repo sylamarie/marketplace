@@ -13,6 +13,7 @@ export type Listing = {
   image_path: string; // the photo's file name in the "listing-images" bucket
   location: string;
   created_at: string;
+  sold?: boolean; // set by the Stripe webhook once someone buys it
 };
 
 export const LIMITS = {
