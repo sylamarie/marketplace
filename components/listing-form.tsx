@@ -1,0 +1,312 @@
+"use client";
+
+import { ImagePlus, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CATEGORIES, categoryName } from "@/lib/categories";
+import {
+  IMAGE_EXTENSIONS,
+  IMAGE_BUCKET,
+  LIMITS,
+  checkImage,
+  formatPrice,
+  parsePrice,
+  validateListing,
+  type ListingErrors,
+} from "@/lib/listings";
+import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+
+// One labelled field with its error message underneath.
+function Field({
+  id,
+  label,
+  error,
+  required,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-sm font-medium">
+        {label}
+        {required && <span aria-hidden> *</span>}
+      </label>
+      {children}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// The page for creating a listing: a form on the left, and a live preview of
+// how the listing will look on the right.
+export function ListingForm() {
+  const router = useRouter();
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("");
+  const [priceText, setPriceText] = useState("");
+  const [location, setLocation] = useState("");
+  const [email, setEmail] = useState("");
+  const [description, setDescription] = useState("");
+  const [errors, setErrors] = useState<ListingErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [dragging, setDragging] = useState(false);
+
+  // A temporary address so we can show a preview of the chosen photo.
+  const previewUrl = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl); // free the memory
+    };
+  }, [previewUrl]);
+
+  function choosePhoto(file: File | undefined) {
+    if (!file) return;
+    const problem = checkImage(file);
+    if (problem) {
+      setPhoto(null);
+      setErrors((e) => ({ ...e, hasPhoto: problem }));
+      return;
+    }
+    setPhoto(file);
+    setErrors((e) => ({ ...e, hasPhoto: undefined }));
+  }
+
+  function onDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setDragging(false);
+    choosePhoto(event.dataTransfer.files?.[0]);
+  }
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitError(null);
+
+    const found = validateListing({ title, category, price: priceText, location, email, description, hasPhoto: photo !== null });
+    setErrors(found);
+    const firstProblem = (["hasPhoto", "title", "category", "price", "email", "location", "description"] as const).find((k) => found[k]);
+    if (firstProblem) {
+      // Jump to the first field that needs fixing.
+      document.getElementById(firstProblem === "hasPhoto" ? "photo" : firstProblem)?.focus();
+      return;
+    }
+    const price = parsePrice(priceText);
+    if (!supabase || !photo || price === null) return;
+
+    setSubmitting(true);
+
+    // Step 1: upload the photo under a random name (it can never overwrite
+    // anyone else's photo, and the name can't be guessed).
+    const imagePath = `${crypto.randomUUID()}.${IMAGE_EXTENSIONS[photo.type]}`;
+    const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(imagePath, photo, {
+      contentType: photo.type,
+      cacheControl: "31536000", // photos never change, so browsers may keep them
+      upsert: false,
+    });
+    if (uploadError) {
+      console.error("Could not upload photo:", uploadError.message);
+      setSubmitError("Sorry, your photo could not be uploaded. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+
+    // Step 2: save the listing.
+    const { data, error } = await supabase
+      .from("listings")
+      .insert({
+        title: title.trim(),
+        description: description.trim(),
+        price,
+        category,
+        seller_email: email.trim(),
+        image_path: imagePath,
+        location: location.trim(),
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      console.error("Could not create listing:", error?.message);
+      setSubmitError("Sorry, your listing could not be saved. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+    router.push(`/item/${data.id}`); // go and look at the new listing
+  }
+
+  const shownPrice = parsePrice(priceText);
+  const invalid = (key: keyof ListingErrors) => (errors[key] ? true : undefined);
+
+  return (
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <Link href="/create" className="mb-4 inline-block text-sm text-primary hover:underline">
+        ← Choose listing type
+      </Link>
+      <h1 className="mb-6 text-2xl font-bold">Item for sale</h1>
+
+      <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
+        <form onSubmit={onSubmit} noValidate className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+          {/* Photo */}
+          <div>
+            <p className="mb-1 text-sm font-medium">
+              Photo<span aria-hidden> *</span>
+            </p>
+            <input
+              id="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => choosePhoto(e.target.files?.[0])}
+              aria-invalid={invalid("hasPhoto")}
+              className="peer sr-only"
+            />
+            {photo && previewUrl ? (
+              <div className="relative overflow-hidden rounded-lg border">
+                {/* eslint-disable-next-line @next/next/no-img-element -- just a local preview */}
+                <img src={previewUrl} alt="The photo you chose" className="max-h-52 w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPhoto(null)}
+                  aria-label="Remove photo"
+                  className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-destructive text-white shadow focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X aria-hidden className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="photo"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={onDrop}
+                className={cn(
+                  "flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed px-3 py-8 text-center text-sm transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
+                  dragging ? "border-primary bg-primary/10" : "border-input hover:bg-muted",
+                )}
+              >
+                <ImagePlus aria-hidden className="size-7 text-muted-foreground" />
+                <span className="font-medium">Add photo</span>
+                <span className="text-xs text-muted-foreground">Click or drag and drop. JPG, PNG, GIF or WebP, up to 5 MB.</span>
+              </label>
+            )}
+            {errors.hasPhoto && (
+              <p role="alert" className="mt-1 text-sm text-destructive">
+                {errors.hasPhoto}
+              </p>
+            )}
+          </div>
+
+          <Field id="title" label="Title" required error={errors.title}>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={LIMITS.title} placeholder="What are you selling?" aria-invalid={invalid("title")} aria-describedby={errors.title ? "title-error" : undefined} />
+          </Field>
+
+          <Field id="category" label="Category" required error={errors.category}>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              aria-invalid={invalid("category")}
+              aria-describedby={errors.category ? "category-error" : undefined}
+              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
+            >
+              <option value="">Select a category</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field id="price" label="Price (0 for free)" required error={errors.price}>
+            <Input id="price" value={priceText} onChange={(e) => setPriceText(e.target.value)} inputMode="decimal" placeholder="e.g. 120" aria-invalid={invalid("price")} aria-describedby={errors.price ? "price-error" : undefined} />
+          </Field>
+
+          <Field id="location" label="Location (optional)" error={errors.location}>
+            <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={LIMITS.location} placeholder="e.g. your campus or city" aria-invalid={invalid("location")} aria-describedby={errors.location ? "location-error" : undefined} />
+          </Field>
+
+          <Field id="email" label="Contact email" required error={errors.email}>
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={LIMITS.email} placeholder="you@example.com" autoComplete="email" aria-invalid={invalid("email")} aria-describedby={errors.email ? "email-error" : "email-hint"} />
+            <p id="email-hint" className="mt-1 text-xs text-muted-foreground">
+              This email is shown publicly on your listing.
+            </p>
+          </Field>
+
+          <Field id="description" label="Description" error={errors.description}>
+            <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={LIMITS.description} rows={4} placeholder="Describe your item" aria-invalid={invalid("description")} aria-describedby={errors.description ? "description-error" : undefined} />
+          </Field>
+
+          {submitError && (
+            <p role="alert" className="text-sm text-destructive">
+              {submitError}
+            </p>
+          )}
+          <Button type="submit" size="lg" disabled={submitting || !supabase} className="h-10 w-full text-base">
+            {submitting ? "Creating…" : "Create listing"}
+          </Button>
+          {!supabase && (
+            <p role="status" className="text-xs text-amber-800">
+              Not connected to Supabase yet. See <code>.env.local.example</code>.
+            </p>
+          )}
+        </form>
+
+        {/* Preview: how the listing will look */}
+        <section aria-label="Preview" className="min-w-0">
+          <h2 className="mb-2 text-center text-lg font-bold">Preview</h2>
+          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+            <div className="flex aspect-[4/3] items-center justify-center bg-[repeating-linear-gradient(135deg,var(--muted)_0_10px,transparent_10px_20px)] bg-muted">
+              {photo && previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- just a local preview
+                <img src={previewUrl} alt="" className="size-full object-cover" />
+              ) : (
+                <span className="rounded-md bg-card/80 px-3 py-1 text-sm text-muted-foreground">Your photo will appear here</span>
+              )}
+            </div>
+            <div className="space-y-2 p-5">
+              <h3 className="text-xl font-bold">{title.trim() || "Title"}</h3>
+              <p className="text-lg font-semibold">{shownPrice !== null ? formatPrice(shownPrice) : "Price"}</p>
+              <p className="text-sm text-muted-foreground">
+                Listed just now{location.trim() ? ` in ${location.trim()}` : ""}
+              </p>
+              {category && <p className="text-sm text-muted-foreground">Category: {categoryName(category)}</p>}
+              {description.trim() && <p className="text-sm whitespace-pre-wrap break-words">{description.trim()}</p>}
+              <div>
+                <p className="text-sm font-semibold">Seller information</p>
+                <p className="text-sm text-muted-foreground break-all">{email.trim() || "seller@email.com"}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
