@@ -68,9 +68,8 @@ export function Browse() {
     <main className="page-container grid flex-1 content-start gap-6 py-6 lg:grid-cols-[clamp(15rem,16vw,19rem)_1fr]">
       {/* Big screens: categories in a sidebar */}
       <div className="hidden lg:block">
-        {/* The list is taller than most screens, so it scrolls on its own and
-            every category can be reached while the sidebar stays in view. */}
-        <div className="sticky top-20 max-h-[calc(100svh-6rem)] overflow-y-auto rounded-xl">
+        {/* The sidebar stays in view while you scroll (the card scrolls inside itself). */}
+        <div className="sticky top-20">
           <CategorySidebar selected={category} onSelect={setCategory} />
         </div>
       </div>

@@ -11,10 +11,14 @@ import { cn } from "@/lib/utils";
 // link, so nobody ends up on a page that doesn't exist.
 function SoonItem({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <div aria-disabled="true" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-      <Icon aria-hidden className="size-4" />
-      {label}
-      <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs">Coming soon</span>
+    <div aria-disabled="true" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap text-muted-foreground">
+      <Icon aria-hidden className="size-4 shrink-0" />
+      <span>{label}</span>
+      {/* The tag says "Soon" so it always fits on one line; screen readers hear "Coming soon". */}
+      <span className="ml-auto shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs">
+        <span aria-hidden>Soon</span>
+        <span className="sr-only">Coming soon</span>
+      </span>
     </div>
   );
 }
@@ -33,7 +37,12 @@ const itemClass = (active: boolean) =>
 // Categories as a sidebar on big screens...
 export function CategorySidebar({ selected, onSelect }: Props) {
   return (
-    <nav aria-label="Categories" className="rounded-xl border bg-card p-3 shadow-sm">
+    // The list is taller than most screens, so the card itself scrolls (with a thin
+    // scrollbar inside it) and every category can be reached.
+    <nav
+      aria-label="Categories"
+      className="max-h-[calc(100svh-6rem)] overflow-y-auto rounded-xl border bg-card p-3 shadow-sm [scrollbar-width:thin]"
+    >
       <h2 className="px-3 pt-1 pb-2 text-lg font-bold">Create new listing</h2>
       <ul>
         <li>
