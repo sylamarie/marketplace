@@ -80,7 +80,7 @@ The `anon` key is meant to be public. It is safe in the browser because the rule
 - only accepts requests from the site itself, and checks everything again on the server (including a message size limit);
 - looks up the seller's address from the saved listing, so a request can never choose where the email goes;
 - saves the message first and emails second, so an email problem can never lose a message;
-- sends plain text only, with line breaks stripped from the subject, so nothing a buyer types can add email headers or HTML;
+- sends a designed HTML email (the listing's photo, price and category, the message in a quote block, and a "Reply to buyer" button) together with a plain-text version. Everything a person typed is escaped, so a message like `<script>` shows up as harmless text, and line breaks are stripped from the subject so nothing can add email headers;
 - limits how fast messages can be sent (10 per visitor and 5 per listing, per 10 minutes). This limit is kept in the server's memory, so it is a best-effort guard rather than a perfect one.
 
 Note: the seller's email is shown publicly on the listing page, as the challenge asks. Use an address you don't mind being public.

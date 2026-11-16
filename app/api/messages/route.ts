@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 
 import { DEFAULT_API_URL, DEFAULT_FROM, buildSellerEmail, sendEmail } from "@/lib/email";
-import { isUuid, validateMessage } from "@/lib/listings";
+import { categoryName } from "@/lib/categories";
+import { IMAGE_BUCKET, formatPrice, isUuid, validateMessage } from "@/lib/listings";
 import { createLimiter } from "@/lib/rate-limit";
 
 // "Message the seller" goes through this server route (and not straight from the
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
   // The seller's address comes from the saved listing, never from the request.
   const { data: listing, error: lookupError } = await supabase
     .from("listings")
-    .select("id, title, seller_email")
+    .select("id, title, seller_email, price, category, image_path")
     .eq("id", listing_id)
     .maybeSingle();
   if (lookupError) {
@@ -88,6 +89,11 @@ export async function POST(request: NextRequest) {
       listingUrl: `${request.nextUrl.origin}/item/${listing.id}`,
       buyerEmail,
       message: text,
+      priceText: formatPrice(Number(listing.price)),
+      categoryLabel: categoryName(listing.category),
+      // The photo's public address in Supabase Storage. The database only allows
+      // random-id file names here, so this can never point at another website.
+      imageUrl: `${url}/storage/v1/object/public/${IMAGE_BUCKET}/${listing.image_path}`,
     });
     const result = await sendEmail(
       {
