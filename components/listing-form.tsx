@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type DragEvent,
@@ -69,6 +70,7 @@ function Field({
 // how the listing will look on the right.
 export function ListingForm() {
   const router = useRouter();
+  const fileInput = useRef<HTMLInputElement>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
@@ -161,7 +163,29 @@ export function ListingForm() {
       setSubmitting(false);
       return;
     }
+    // Clear the whole form BEFORE leaving. This version of Next.js keeps a page's
+    // state alive in the background when you navigate away, so without this the
+    // next "Create listing" would still show the last listing's photo and text,
+    // and the button would still say "Creating...".
+    clearPhoto();
+    setTitle("");
+    setCategory("");
+    setPriceText("");
+    setLocation("");
+    setEmail("");
+    setDescription("");
+    setErrors({});
+    setSubmitError(null);
+    setDragging(false);
+    setSubmitting(false);
     router.push(`/item/${data.id}`); // go and look at the new listing
+  }
+
+  // Forget the chosen photo. The file input itself must be emptied too, otherwise
+  // the browser would ignore choosing the very same file a second time.
+  function clearPhoto() {
+    setPhoto(null);
+    if (fileInput.current) fileInput.current.value = "";
   }
 
   const shownPrice = parsePrice(priceText);
@@ -183,6 +207,7 @@ export function ListingForm() {
             </p>
             <input
               id="photo"
+              ref={fileInput}
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={(e: ChangeEvent<HTMLInputElement>) => choosePhoto(e.target.files?.[0])}
@@ -195,7 +220,7 @@ export function ListingForm() {
                 <img src={previewUrl} alt="The photo you chose" className="max-h-52 w-full object-cover" />
                 <button
                   type="button"
-                  onClick={() => setPhoto(null)}
+                  onClick={clearPhoto}
                   aria-label="Remove photo"
                   className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-destructive text-white shadow focus-visible:ring-2 focus-visible:ring-ring"
                 >
