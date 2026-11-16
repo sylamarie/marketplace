@@ -46,10 +46,12 @@ export async function POST(request: NextRequest) {
     if (!accountId) {
       // This Stripe platform lets Stripe manage the risk, which needs Stripe's newer
       // "Accounts v2" way of creating a seller account (the old `type: "express"` is refused).
+      // dashboard "none": sellers never log in to Stripe. They fill in Stripe's hosted
+      // onboarding form (opened with the link below), which needs no password.
       const account = await stripe.v2.core.accounts.create({
         contact_email: email,
         display_name: email,
-        dashboard: "full",
+        dashboard: "none",
         identity: { country: "us" },
         defaults: { responsibilities: { fees_collector: "stripe", losses_collector: "stripe" } },
         configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
