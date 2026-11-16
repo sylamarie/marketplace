@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, X } from "lucide-react";
+import { Clock, ImagePlus, MapPin, Tag, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -36,20 +36,25 @@ function Field({
   label,
   error,
   required,
+  counter,
   children,
 }: {
   id: string;
   label: string;
   error?: string;
   required?: boolean;
+  counter?: string; // e.g. "12/100": how much of the limit is used
   children: ReactNode;
 }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium">
-        {label}
-        {required && <span aria-hidden> *</span>}
-      </label>
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <label htmlFor={id} className="text-sm font-medium">
+          {label}
+          {required && <span aria-hidden> *</span>}
+        </label>
+        {counter && <span className="text-xs text-muted-foreground">{counter}</span>}
+      </div>
       {children}
       {error && (
         <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-destructive">
@@ -223,10 +228,12 @@ export function ListingForm() {
             )}
           </div>
 
-          <Field id="title" label="Title" required error={errors.title}>
+          <Field id="title" label="Title" required error={errors.title} counter={`${title.length}/${LIMITS.title}`}>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={LIMITS.title} placeholder="What are you selling?" aria-invalid={invalid("title")} aria-describedby={errors.title ? "title-error" : undefined} />
           </Field>
 
+          {/* Category and price side by side: shorter form, and they belong together. */}
+          <div className="grid grid-cols-2 items-start gap-3">
           <Field id="category" label="Category" required error={errors.category}>
             <select
               id="category"
@@ -245,9 +252,15 @@ export function ListingForm() {
             </select>
           </Field>
 
-          <Field id="price" label="Price (0 for free)" required error={errors.price}>
-            <Input id="price" value={priceText} onChange={(e) => setPriceText(e.target.value)} inputMode="decimal" placeholder="e.g. 120" aria-invalid={invalid("price")} aria-describedby={errors.price ? "price-error" : undefined} />
+          <Field id="price" label="Price" required error={errors.price}>
+            <div className="relative">
+              <span aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-muted-foreground">
+                $
+              </span>
+              <Input id="price" value={priceText} onChange={(e) => setPriceText(e.target.value)} inputMode="decimal" placeholder="0 = free" className="pl-6" aria-invalid={invalid("price")} aria-describedby={errors.price ? "price-error" : undefined} />
+            </div>
           </Field>
+          </div>
 
           <Field id="location" label="Location (optional)" error={errors.location}>
             <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={LIMITS.location} placeholder="e.g. your campus or city" aria-invalid={invalid("location")} aria-describedby={errors.location ? "location-error" : undefined} />
@@ -260,7 +273,7 @@ export function ListingForm() {
             </p>
           </Field>
 
-          <Field id="description" label="Description" error={errors.description}>
+          <Field id="description" label="Description" error={errors.description} counter={`${description.length}/${LIMITS.description}`}>
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={LIMITS.description} rows={4} placeholder="Describe your item" aria-invalid={invalid("description")} aria-describedby={errors.description ? "description-error" : undefined} />
           </Field>
 
@@ -294,10 +307,24 @@ export function ListingForm() {
             <div className="space-y-2 p-5">
               <h3 className="text-xl font-bold">{title.trim() || "Title"}</h3>
               <p className="text-lg font-semibold">{shownPrice !== null ? formatPrice(shownPrice) : "Price"}</p>
-              <p className="text-sm text-muted-foreground">
-                Listed just now{location.trim() ? ` in ${location.trim()}` : ""}
-              </p>
-              {category && <p className="text-sm text-muted-foreground">Category: {categoryName(category)}</p>}
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Clock aria-hidden className="size-4 shrink-0" />
+                  <span>Listed just now</span>
+                </li>
+                {location.trim() && (
+                  <li className="flex items-center gap-2">
+                    <MapPin aria-hidden className="size-4 shrink-0" />
+                    <span className="break-words">{location.trim()}</span>
+                  </li>
+                )}
+                {category && (
+                  <li className="flex items-center gap-2">
+                    <Tag aria-hidden className="size-4 shrink-0" />
+                    <span>{categoryName(category)}</span>
+                  </li>
+                )}
+              </ul>
               {description.trim() && <p className="text-sm whitespace-pre-wrap break-words">{description.trim()}</p>}
               <div>
                 <p className="text-sm font-semibold">Seller information</p>

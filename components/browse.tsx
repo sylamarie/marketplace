@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { CategorySidebar, CategoryTabs } from "@/components/category-nav";
-import { ListingCard } from "@/components/listing-card";
+import { ListingCard, ListingCardSkeleton } from "@/components/listing-card";
 import { Input } from "@/components/ui/input";
 import { categoryName } from "@/lib/categories";
 import type { Listing } from "@/lib/listings";
@@ -67,15 +67,24 @@ export function Browse() {
     <main className="mx-auto grid w-full max-w-7xl flex-1 content-start gap-6 px-4 py-6 lg:grid-cols-[16rem_1fr]">
       {/* Big screens: categories in a sidebar */}
       <div className="hidden lg:block">
-        <div className="sticky top-20">
+        {/* The list is taller than most screens, so it scrolls on its own and
+            every category can be reached while the sidebar stays in view. */}
+        <div className="sticky top-20 max-h-[calc(100svh-6rem)] overflow-y-auto rounded-xl">
           <CategorySidebar selected={category} onSelect={setCategory} />
         </div>
       </div>
 
       <section aria-labelledby="listings-heading" className="min-w-0">
-        <h1 id="listings-heading" className="mb-3 text-2xl font-bold">
-          {heading}
-        </h1>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h1 id="listings-heading" className="text-2xl font-bold">
+            {heading}
+          </h1>
+          {status === "ready" && listings.length > 0 && (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              {visible.length} {visible.length === 1 ? "listing" : "listings"}
+            </p>
+          )}
+        </div>
 
         <div className="relative mb-4">
           <label htmlFor="search" className="sr-only">
@@ -103,7 +112,17 @@ export function Browse() {
             <code>.env.local</code>, add your two Supabase values, then restart <code>npm run dev</code>.
           </p>
         )}
-        {status === "loading" && <p className="text-sm text-muted-foreground">Loading listings…</p>}
+        {status === "loading" && (
+          <div role="status" aria-label="Loading listings">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4 2xl:grid-cols-5">
+              {Array.from({ length: 10 }, (_, i) => (
+                <li key={i}>
+                  <ListingCardSkeleton />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {status === "error" && (
           <p role="alert" className="text-sm text-destructive">
             Sorry, the listings could not be loaded. Please refresh the page.

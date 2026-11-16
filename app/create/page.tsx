@@ -17,7 +17,8 @@ export const metadata = { title: "Choose listing type · Marketplace" };
 export default function ChooseListingType() {
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-      <h1 className="mb-6 text-center text-2xl font-bold">Choose listing type</h1>
+      <h1 className="text-center text-2xl font-bold">Choose listing type</h1>
+      <p className="mt-1 mb-6 text-center text-sm text-muted-foreground">What would you like to list today?</p>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {TYPES.map(({ name, text, icon: Icon, href }) => {
           const card = (

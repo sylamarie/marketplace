@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Clock, MapPin, Tag } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
@@ -130,7 +130,17 @@ export function ListingDetail() {
     return (
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         {backLink}
-        {status === "loading" && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {status === "loading" && (
+          <div role="status" aria-label="Loading listing" className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+            <div className="min-h-[22rem] animate-pulse rounded-xl bg-muted lg:min-h-[32rem]" />
+            <div className="space-y-4">
+              <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-6 w-1/4 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+              <div className="h-40 animate-pulse rounded-xl bg-muted" />
+            </div>
+          </div>
+        )}
         {status === "notfound" && (
           <div>
             <h1 className="text-xl font-bold">Listing not found</h1>
@@ -157,24 +167,46 @@ export function ListingDetail() {
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
       {backLink}
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="flex items-center justify-center overflow-hidden rounded-xl border bg-card p-2 shadow-sm">
+        {/* The photo sits on a soft, blurred copy of itself (like Facebook), so there
+            are no empty white bands above and below it. The blurred copy is only
+            decoration, so it has no description for screen readers. */}
+        <div className="relative flex min-h-[22rem] items-center justify-center overflow-hidden rounded-xl border bg-muted shadow-sm lg:min-h-[32rem]">
+          <Photo
+            path={listing.image_path}
+            alt=""
+            eager
+            className="absolute inset-0 size-full scale-125 object-cover opacity-70 blur-2xl"
+          />
           <Photo
             path={listing.image_path}
             alt={listing.title}
             eager
-            className="max-h-[75vh] w-auto max-w-full rounded-lg object-contain"
+            className="relative max-h-[75vh] w-auto max-w-full object-contain shadow-lg"
           />
         </div>
 
         <div className="min-w-0 space-y-5">
           <div>
-            <h1 className="text-2xl font-bold break-words">{listing.title}</h1>
-            <p className="mt-1 text-xl font-semibold">{formatPrice(Number(listing.price))}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Listed {listedAgo(listing.created_at, now)}
-              {listing.location ? ` in ${listing.location}` : ""}
+            <h1 className="text-2xl leading-tight font-bold break-words">{listing.title}</h1>
+            <p className={`mt-1 text-3xl font-bold ${Number(listing.price) === 0 ? "text-green-700" : ""}`}>
+              {formatPrice(Number(listing.price))}
             </p>
-            <p className="text-sm text-muted-foreground">Category: {categoryName(listing.category)}</p>
+            <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <Clock aria-hidden className="size-4 shrink-0" />
+                <span>Listed {listedAgo(listing.created_at, now)}</span>
+              </li>
+              {listing.location && (
+                <li className="flex items-center gap-2">
+                  <MapPin aria-hidden className="size-4 shrink-0" />
+                  <span className="break-words">{listing.location}</span>
+                </li>
+              )}
+              <li className="flex items-center gap-2">
+                <Tag aria-hidden className="size-4 shrink-0" />
+                <span>{categoryName(listing.category)}</span>
+              </li>
+            </ul>
           </div>
 
           {listing.description && (
@@ -185,10 +217,15 @@ export function ListingDetail() {
           )}
 
           <div>
-            <h2 className="text-sm font-semibold">Seller information</h2>
-            <a href={`mailto:${listing.seller_email}`} className="mt-1 block text-sm break-all text-primary hover:underline">
-              {listing.seller_email}
-            </a>
+            <h2 className="mb-2 text-sm font-semibold">Seller information</h2>
+            <div className="flex items-center gap-3 rounded-xl border bg-card p-3 shadow-sm">
+              <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                {Array.from(listing.seller_email)[0]?.toUpperCase()}
+              </span>
+              <a href={`mailto:${listing.seller_email}`} className="min-w-0 text-sm font-medium break-all text-primary hover:underline">
+                {listing.seller_email}
+              </a>
+            </div>
           </div>
 
           <section aria-labelledby="message-heading" className="rounded-xl border bg-card p-4 shadow-sm">
