@@ -4,7 +4,7 @@ A small Facebook-style marketplace. Post an item with a photo, browse everything
 
 Built with **React 19**, **Next.js**, **Supabase**, **Tailwind CSS** and **shadcn/ui**.
 
-**Live site:** _(added after deployment)_
+**Live site:** https://marketplace-syla.vercel.app
 
 ## What it does
 
