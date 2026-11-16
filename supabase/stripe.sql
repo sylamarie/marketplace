@@ -70,3 +70,15 @@ create view public.onboarded_sellers as
   select email from public.sellers where charges_enabled;
 
 grant select on public.onboarded_sellers to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 6. Access for the website's SERVER. Supabase no longer gives its server role
+--    ("service_role", the one the secret key uses) access to new tables by itself,
+--    so we say exactly what it may do: read listings and mark them sold, and read
+--    and write sellers and orders. (If you ran this file before step 6 existed,
+--    just run these four lines on their own.)
+-- ---------------------------------------------------------------------------
+grant usage on schema public to service_role;
+grant select, update on public.listings to service_role;
+grant select, insert, update on public.sellers to service_role;
+grant select, insert, update on public.orders to service_role;

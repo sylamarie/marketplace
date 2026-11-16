@@ -44,10 +44,15 @@ export async function POST(request: NextRequest) {
     let accountId = found.data?.stripe_account_id as string | undefined;
 
     if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: "express",
-        email,
-        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+      // This Stripe platform lets Stripe manage the risk, which needs Stripe's newer
+      // "Accounts v2" way of creating a seller account (the old `type: "express"` is refused).
+      const account = await stripe.v2.core.accounts.create({
+        contact_email: email,
+        display_name: email,
+        dashboard: "full",
+        identity: { country: "us" },
+        defaults: { responsibilities: { fees_collector: "stripe", losses_collector: "stripe" } },
+        configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
       });
       const saved = await admin.from("sellers").insert({ email, stripe_account_id: account.id });
       if (saved.error) {
@@ -63,11 +68,15 @@ export async function POST(request: NextRequest) {
     // The one-time link to Stripe's hosted onboarding form. When the seller finishes
     // (or leaves), Stripe sends them to return_url; if the link has expired, to refresh_url.
     const origin = request.nextUrl.origin;
-    const link = await stripe.accountLinks.create({
+    const link = await stripe.v2.core.accountLinks.create({
       account: accountId,
-      type: "account_onboarding",
-      return_url: `${origin}/connect/return?account=${accountId}`,
-      refresh_url: `${origin}/connect`,
+      use_case: {
+        type: "account_onboarding",
+        account_onboarding: {
+          return_url: `${origin}/connect/return?account=${accountId}`,
+          refresh_url: `${origin}/connect`,
+        },
+      },
     });
     return reply(200, { url: link.url });
   } catch (error) {

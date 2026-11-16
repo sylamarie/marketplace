@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import type Stripe from "stripe";
 
 import { recordPaidSession } from "@/lib/orders";
+import { refreshSellerStatus } from "@/lib/seller-status";
 import { getStripe } from "@/lib/stripe";
 import { getAdminClient } from "@/lib/supabase-admin";
 
@@ -41,13 +42,9 @@ export async function POST(request: NextRequest) {
       const result = await recordPaidSession(admin, event.account, event.data.object);
       console.log(`Webhook ${event.id}: checkout.session.completed -> ${result}`);
     } else if (event.type === "account.updated") {
-      const account = event.data.object;
-      // Only touches a row for an account we saved ourselves; any other account changes nothing.
-      const { error } = await admin
-        .from("sellers")
-        .update({ charges_enabled: account.charges_enabled === true, updated_at: new Date().toISOString() })
-        .eq("stripe_account_id", account.id);
-      if (error) throw new Error(error.message);
+      // Asks Stripe for the account's current status. It only does anything for an
+      // account we saved ourselves; any other account (the sandbox is shared) is skipped.
+      await refreshSellerStatus(stripe, admin, event.data.object.id);
     }
   } catch (error) {
     console.error(`Webhook ${event.id} failed:`, error instanceof Error ? error.message : error);
