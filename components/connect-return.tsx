@@ -26,7 +26,13 @@ export function ConnectReturn() {
     if (!isStripeAccountId(account)) return;
     let cancelled = false;
 
-    async function check() {
+    // Stripe can take a few seconds to switch card payments on after the seller submits
+    // the form, so if it isn't active yet we ask again a few times before saying so.
+    const TRIES = 7;
+    const EVERY_MS = 2000;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    async function check(attempt: number) {
       let result: { ready?: boolean; email?: string } | null = null;
       try {
         const response = await fetch("/api/stripe/connect/sync", {
@@ -40,11 +46,14 @@ export function ConnectReturn() {
       }
       if (cancelled) return;
       if (!result || typeof result.email !== "string") setState({ kind: "error" });
-      else setState({ kind: result.ready ? "ready" : "unfinished", email: result.email });
+      else if (result.ready) setState({ kind: "ready", email: result.email });
+      else if (attempt + 1 >= TRIES) setState({ kind: "unfinished", email: result.email });
+      else timer = setTimeout(() => check(attempt + 1), EVERY_MS);
     }
-    check();
+    check(0);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [account]);
 
