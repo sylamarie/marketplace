@@ -1,6 +1,7 @@
 import { CreditCard, Plus } from "lucide-react";
 import Link from "next/link";
 
+import { SalesBell } from "@/components/sales-bell";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ export function Header() {
           <span className="text-xl font-bold tracking-tight">Marketplace</span>
         </Link>
         <nav aria-label="Main" className="flex items-center gap-2">
+          <SalesBell />
           {/* On a phone only the card icon is shown, to keep the bar from getting crowded. */}
           <Link
             href="/connect"
@@ -41,7 +43,9 @@ export function Header() {
           </Link>
           <Link href="/create" className={cn(buttonVariants({ size: "lg" }), "gap-1.5")}>
             <Plus aria-hidden className="size-4" />
-            Create listing
+            {/* A shorter word on a phone, so the bar never gets crowded. */}
+            <span className="sm:hidden">Create</span>
+            <span className="hidden sm:inline">Create listing</span>
           </Link>
         </nav>
       </div>

@@ -105,3 +105,23 @@ create view public.orders_in_dollars with (security_invoker = true) as
   order by o.created_at desc;
 
 revoke all on public.orders_in_dollars from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 8. Recent sales, for the bell in the top bar. PUBLIC on purpose, so it only
+--    has what is already visible on a sold listing: the item, the price and the
+--    time. It never has who bought it (no buyer email). Run these two statements
+--    on their own if you ran this file before step 8 existed.
+-- ---------------------------------------------------------------------------
+create view public.recent_sales as
+  select
+    o.listing_id,
+    l.title as item,
+    (o.amount_total / 100.0)::numeric(12,2) as amount_paid,
+    upper(o.currency) as currency,
+    o.created_at as sold_at
+  from public.orders o
+  join public.listings l on l.id = o.listing_id
+  order by o.created_at desc
+  limit 20;
+
+grant select on public.recent_sales to anon, authenticated;

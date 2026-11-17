@@ -97,9 +97,16 @@ export function PurchaseSuccess() {
               </p>
             )}
 
-            <Link href="/" className={cn(buttonVariants({ size: "lg" }), "mt-5")}>
-              Continue shopping
-            </Link>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {state.kind === "found" && (
+                <Link href={`/item/${state.order.listing_id}`} className={cn(buttonVariants({ size: "lg", variant: "outline" }))}>
+                  View this item
+                </Link>
+              )}
+              <Link href="/" className={cn(buttonVariants({ size: "lg" }))}>
+                Continue shopping
+              </Link>
+            </div>
           </>
         )}
       </div>

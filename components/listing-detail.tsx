@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { categoryName } from "@/lib/categories";
-import { buyState, normalizeEmail } from "@/lib/payments";
+import { PLATFORM_FEE_PERCENT, buyState, normalizeEmail } from "@/lib/payments";
 import {
   LIMITS,
   formatPrice,
@@ -266,7 +266,9 @@ export function ListingDetail() {
                 <ShoppingCart aria-hidden className="size-4" />
                 {buying ? "Opening checkout…" : `Buy now · ${formatPrice(Number(listing.price))}`}
               </Button>
-              <p className="mt-1.5 text-center text-xs text-muted-foreground">Secure payment by Stripe (test mode)</p>
+              <p className="mt-1.5 text-center text-xs text-muted-foreground">
+                Secure payment by Stripe (test mode). The seller receives the price minus a {PLATFORM_FEE_PERCENT}% marketplace fee.
+              </p>
               {buyError && (
                 <p role="alert" className="mt-2 text-sm text-destructive">
                   {buyError}
