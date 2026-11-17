@@ -82,3 +82,26 @@ grant usage on schema public to service_role;
 grant select, update on public.listings to service_role;
 grant select, insert, update on public.sellers to service_role;
 grant select, insert, update on public.orders to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 7. A friendlier way to READ the orders table (optional). The real table keeps
+--    money in cents, like Stripe does (2000 = $20.00). This view shows the same
+--    orders in dollars, with the item's title. It is only for looking at in the
+--    Supabase dashboard: visitors have no access to it (it contains buyer emails).
+--    Run these two statements on their own if you ran this file before step 7 existed.
+-- ---------------------------------------------------------------------------
+create view public.orders_in_dollars with (security_invoker = true) as
+  select
+    o.created_at,
+    l.title as item,
+    (o.amount_total / 100.0)::numeric(12,2) as amount_paid,
+    (o.platform_fee / 100.0)::numeric(12,2) as marketplace_fee,
+    ((o.amount_total - o.platform_fee) / 100.0)::numeric(12,2) as seller_receives,
+    upper(o.currency) as currency,
+    o.buyer_email,
+    o.status
+  from public.orders o
+  join public.listings l on l.id = o.listing_id
+  order by o.created_at desc;
+
+revoke all on public.orders_in_dollars from anon, authenticated;
