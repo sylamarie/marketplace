@@ -83,7 +83,9 @@ export async function POST(request: NextRequest) {
         payment_intent_data: { application_fee_amount: platformFee(cents), metadata: { listing_id: listing.id } },
         // The webhook reads this to know which listing was bought.
         metadata: { listing_id: listing.id },
-        success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+        // The success page also gets the listing id, so it can double-check the payment with
+        // Stripe itself if the webhook hasn't (or can't) report it. See app/api/stripe/order.
+        success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}&listing=${listing.id}`,
         cancel_url: `${origin}/item/${listing.id}`,
       },
       { stripeAccount: seller.stripe_account_id },

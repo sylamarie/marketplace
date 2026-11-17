@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { isUuid } from "@/lib/listings";
 import { isCheckoutSessionId } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,10 @@ const money = (cents: number, currency: string) =>
 // Where the buyer lands after paying. The order is saved by Stripe's webhook, a
 // moment after the payment, so this page asks a few times until it is there.
 export function PurchaseSuccess() {
-  const sessionId = useSearchParams().get("session_id") ?? "";
+  const params = useSearchParams();
+  const sessionId = params.get("session_id") ?? "";
+  // Lets the server double-check the payment with Stripe if the webhook is late.
+  const listingId = params.get("listing") ?? "";
   const [state, setState] = useState<State>(isCheckoutSessionId(sessionId) ? { kind: "waiting" } : { kind: "invalid" });
 
   useEffect(() => {
@@ -32,7 +36,8 @@ export function PurchaseSuccess() {
     async function ask(attempt: number) {
       let order: Order | null = null;
       try {
-        const response = await fetch(`/api/stripe/order?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
+        const query = `session_id=${encodeURIComponent(sessionId)}${isUuid(listingId) ? `&listing=${encodeURIComponent(listingId)}` : ""}`;
+        const response = await fetch(`/api/stripe/order?${query}`, { cache: "no-store" });
         const data = response.ok ? await response.json() : null;
         if (data?.found) order = data as Order;
       } catch {
@@ -49,7 +54,7 @@ export function PurchaseSuccess() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [sessionId]);
+  }, [sessionId, listingId]);
 
   return (
     <main className="page-container flex-1 py-8">
